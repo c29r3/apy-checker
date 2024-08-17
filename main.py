@@ -91,22 +91,35 @@ def fetch_and_send_data():
 
         # Check for conditions to send a message
         message = ""
-        if any(apr <= MIN_APY_THRESHOLD for apr in solend_data.values()) or (
-                kamino_data or meteora_data
-                and any(apy <= MIN_APY_THRESHOLD for apy in kamino_data.values())):
+        should_send = False
+
+        # Check if any Solend data is below the threshold
+        for apr in solend_data.values():
+            if apr <= MIN_APY_THRESHOLD:
+                should_send = True
+                break
+
+        # Check if any Kamino data is below the threshold
+        if kamino_data:
+            for apy in kamino_data.values():
+                if apy <= MIN_APY_THRESHOLD:
+                    should_send = True
+                    break
+
+        # Check if any Meteora data is below the threshold
+        if meteora_data:
+            for apy in meteora_data.values():
+                if apy <= MIN_APY_THRESHOLD:
+                    should_send = True
+                    break
+
+        # Log the conditions
+        logging.info(
+            f"should_send: {should_send}, MIN_APY_THRESHOLD: {MIN_APY_THRESHOLD}, solend_data: {solend_data}, kamino_data: {kamino_data}, meteora_data: {meteora_data}")
+
+        # Send the message if conditions are met
+        if should_send:
             message = (f"Solend Data:\n{solend_message(solend_data)}\n\n"
-                       f"Kamino Data:\n{kamino_message}\n"
-                       f"Meteora Data:\n{solend_message(meteora_data)}\n\n"
-                       f"Last updated: `{last_fetched_data['timestamp'].strftime('%Y-%m-%d %H:%M:%S %Z%z')}`")
-            send_telegram_message(message)
-
-        # Check for percentage change
-        if (check_percentage_change(last_fetched_data['solend_data'], solend_data) or check_percentage_change(
-                last_fetched_data['kamino_data'], kamino_data) or
-                check_percentage_change(last_fetched_data['meteora_data'], meteora_data)):
-
-            message = (f"ALERT: Significant APY change detected!\n\n"
-                       f"Solend Data:\n{solend_message(solend_data)}\n\n"
                        f"Kamino Data:\n{kamino_message}\n\n"
                        f"Meteora Data:\n{solend_message(meteora_data)}\n\n"
                        f"Last updated: `{last_fetched_data['timestamp'].strftime('%Y-%m-%d %H:%M:%S %Z%z')}`")
@@ -118,21 +131,6 @@ def fetch_and_send_data():
 
 def solend_message(data):
     return "\n".join([f'`{token}: {apr:.3f}%`' for token, apr in data.items()])
-
-
-def check_percentage_change(cached_data, new_data):
-    try:
-        if cached_data is None:
-            return False
-        for token, new_apy in new_data.items():
-            if token in cached_data:
-                old_apy = cached_data[token]
-                if abs((new_apy - old_apy) / old_apy * 100) >= PERCENTAGE_CHANGE:
-                    return True
-        return False
-    except Exception as e:
-        logging.error(f"Error in check_percentage_change: {e}")
-        return False
 
 
 def is_authorized(user_id):
@@ -189,8 +187,8 @@ def apy(message):
                 [f'`{token}: {apy:.3f}%`' for token, apy in last_fetched_data['meteora_data'].items()])
             timestamp = last_fetched_data['timestamp'].strftime('%Y-%m-%d %H:%M:%S %Z%z')
             message_text = (f'Solend Data:\n{solend_message}'
-                            f'\n\nKamino Data:\n{kamino_message}\n'
-                            f'\nMeteora Data:\n{meteora_message}\n\n'
+                            f'\nKamino Data:\n{kamino_message}\n'
+                            f'\nMeteora Data:\n{meteora_message}\n'
                             f'Last updated: `{timestamp}`')
             bot.reply_to(message, message_text)
     except Exception as e:
@@ -245,7 +243,7 @@ def process_threshold_step(message):
         logging.error(f"Error in process_threshold_step: {e}")
 
 
-@bot.message_handler(commands=['set_percentage_change'])  # Новый хендлер
+@bot.message_handler(commands=['set_percentage_change'])
 def set_percentage_change(message):
     if is_request_too_frequent(message.from_user.id):
         return
