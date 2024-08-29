@@ -14,10 +14,10 @@ def get_apy():
         page.wait_for_selector('table', timeout=60000)
         time.sleep(5)
 
-        page.click('//*[@id="BACKGROUND_OVERRIDE"]/div/div[3]/div/div[1]/button[3]')
+        page.click('//*[@id="BACKGROUND_OVERRIDE"]/div/div[3]/div/div[1]/button[2]')
         time.sleep(2)
 
-        table_xpath = '//*[@id="BACKGROUND_OVERRIDE"]/div/div[4]/div[1]/div[3]'
+        table_xpath = '//*[@id="BACKGROUND_OVERRIDE"]/div/div[4]/div[1]/div[2]'
         table = page.query_selector(table_xpath)
         rows = table.query_selector_all('tbody tr')
 
