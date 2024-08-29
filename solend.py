@@ -11,8 +11,8 @@ SOLEND_URL = ("https://api.solend.fi/v1/reserves?"
               "&ids=BgxfHJDzm44T7XG68MYKx7YisTjZu73tVovyZSjJMpmw,8K9WC8xoh2rtQNY7iEGXtPvfbDCi563SdWhCAhuMP2xE")
 
 TOKENS = {
-    'USDC': 'BgxfHJDzm44T7XG68MYKx7YisTjZu73tVovyZSjJMpmw',
-    'USDT': '8K9WC8xoh2rtQNY7iEGXtPvfbDCi563SdWhCAhuMP2xE'
+    'USDT': '8K9WC8xoh2rtQNY7iEGXtPvfbDCi563SdWhCAhuMP2xE',
+    'USDC': 'BgxfHJDzm44T7XG68MYKx7YisTjZu73tVovyZSjJMpmw'
 }
 TOKENS_BY_VALUE = {v: k for k, v in TOKENS.items()}
 
@@ -31,6 +31,7 @@ def get_supply_apr():
                 result[TOKENS_BY_VALUE[mint_pubkey]] = float(supply_apr)
 
         logging.info("Data fetched successfully from Solend API.")
+        result = {'USDT': result['USDT'], 'USDC': result['USDC']}
         return result
 
     except requests.exceptions.RequestException as req_err:
