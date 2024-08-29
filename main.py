@@ -186,7 +186,7 @@ def apy(message):
             meteora_message = "\n".join(
                 [f'`{token}: {apy:.3f}%`' for token, apy in last_fetched_data['meteora_data'].items()])
             timestamp = last_fetched_data['timestamp'].strftime('%Y-%m-%d %H:%M:%S %Z%z')
-            message_text = (f'Solend Data:\n{solend_message}'
+            message_text = (f'Solend Data:\n{solend_message}\n'
                             f'\nKamino Data:\n{kamino_message}\n'
                             f'\nMeteora Data:\n{meteora_message}\n'
                             f'Last updated: `{timestamp}`')
