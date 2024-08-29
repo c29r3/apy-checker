@@ -78,7 +78,7 @@ def fetch_and_send_data():
         if kamino_data is None:
             kamino_message = "Failed to fetch Kamino data."
         else:
-            kamino_message = "\n".join([f'`{token} Supply APY: {apy:.3f}%`' for token, apy in kamino_data.items()])
+            kamino_message = "\n".join([f'`{token}: {apy:.3f}%`' for token, apy in kamino_data.items()])
 
         # Get data from Meteora API
         meteora_data = meteora_vault_apr()
