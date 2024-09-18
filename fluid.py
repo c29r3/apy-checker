@@ -27,17 +27,17 @@ def get_fluid_supply_apr():
             browser.close()
 
             result = {}
-            if usdc_apr_text:
-                usdc_apr = float(usdc_apr_text.replace('%', '').strip())
-                result['USDC'] = usdc_apr
-            else:
-                result['USDC'] = 0.0
-
             if usdt_apr_text:
                 usdt_apr = float(usdt_apr_text.replace('%', '').strip())
                 result['USDT'] = usdt_apr
             else:
                 result['USDT'] = 0.0
+
+            if usdc_apr_text:
+                usdc_apr = float(usdc_apr_text.replace('%', '').strip())
+                result['USDC'] = usdc_apr
+            else:
+                result['USDC'] = 0.0
 
             logging.info("Data fetched successfully from Fluid.")
             return result
