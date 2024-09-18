@@ -131,15 +131,14 @@ def fetch_and_send_data():
         # Log the conditions
         logging.info(f"should_send: {should_send}, MIN_APY_THRESHOLD: {MIN_APY_THRESHOLD}, solend_data: {solend_data},"
                      f"kamino_data: {kamino_data}, meteora_data: {meteora_data}, fluid_data: {fluid_data}")
-        
-        fluid_message_text = "\n".join([f'`{token}: {apr:.3f}%`' for token, apr in fluid_data.items()])
+
 
         # Send the message if conditions are met
         if should_send:
             message = (f"Solend Data:\n{solend_message(solend_data)}\n\n"
                     f"Kamino Data:\n{kamino_message}\n\n"
                     f"Meteora Data:\n{solend_message(meteora_data)}\n\n"
-                    f"Fluid Data:\n{fluid_message_text}\n\n"
+                    f"Fluid Data:\n{solend_message(fluid_data)}\n\n"
                     f"Last updated: `{last_fetched_data['timestamp'].strftime('%Y-%m-%d %H:%M:%S %Z%z')}`")
 
     except Exception as e:
