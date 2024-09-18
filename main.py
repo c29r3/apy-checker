@@ -2,6 +2,7 @@ import requests
 from solend import get_supply_apr
 from kamino import get_apy
 from meteora import meteora_vault_apr
+from fluid import get_fluid_supply_apr
 import time
 import logging
 import json
@@ -10,6 +11,7 @@ import threading
 from datetime import datetime, timedelta
 import pytz
 from logging_config import setup_logging
+from playwright.sync_api import sync_playwright
 
 # Load configuration
 with open('config.json', 'r') as config_file:
@@ -35,6 +37,7 @@ last_fetched_data = {
     'solend_data': None,
     'kamino_data': None,
     'meteora_data': None,
+    'fluid_data': None,
     'timestamp': None
 }
 
@@ -83,7 +86,13 @@ def fetch_and_send_data():
         # Get data from Meteora API
         meteora_data = meteora_vault_apr()
 
+        # Get data from Fluid
+        fluid_data = get_fluid_supply_apr()
+        fluid_data = {token: float(apr) for token, apr in fluid_data.items()}
+
+
         # Cache the fetched data
+        last_fetched_data['fluid_data'] = fluid_data
         last_fetched_data['solend_data'] = solend_data
         last_fetched_data['kamino_data'] = kamino_data
         last_fetched_data['meteora_data'] = meteora_data
@@ -112,18 +121,26 @@ def fetch_and_send_data():
                 if apy <= MIN_APY_THRESHOLD:
                     should_send = True
                     break
+        
+        # Check if any Fluid data is below the threshold
+        for apr in fluid_data.values():
+            if apr <= MIN_APY_THRESHOLD:
+                should_send = True
+                break
 
         # Log the conditions
-        logging.info(
-            f"should_send: {should_send}, MIN_APY_THRESHOLD: {MIN_APY_THRESHOLD}, solend_data: {solend_data}, kamino_data: {kamino_data}, meteora_data: {meteora_data}")
+        logging.info(f"should_send: {should_send}, MIN_APY_THRESHOLD: {MIN_APY_THRESHOLD}, solend_data: {solend_data},"
+                     f"kamino_data: {kamino_data}, meteora_data: {meteora_data}, fluid_data: {fluid_data}")
+        
+        fluid_message_text = "\n".join([f'`{token}: {apr:.3f}%`' for token, apr in fluid_data.items()])
 
         # Send the message if conditions are met
         if should_send:
             message = (f"Solend Data:\n{solend_message(solend_data)}\n\n"
-                       f"Kamino Data:\n{kamino_message}\n\n"
-                       f"Meteora Data:\n{solend_message(meteora_data)}\n\n"
-                       f"Last updated: `{last_fetched_data['timestamp'].strftime('%Y-%m-%d %H:%M:%S %Z%z')}`")
-            send_telegram_message(message)
+                    f"Kamino Data:\n{kamino_message}\n\n"
+                    f"Meteora Data:\n{solend_message(meteora_data)}\n\n"
+                    f"Fluid Data:\n{fluid_message_text}\n\n"
+                    f"Last updated: `{last_fetched_data['timestamp'].strftime('%Y-%m-%d %H:%M:%S %Z%z')}`")
 
     except Exception as e:
         logging.error(f"Failed to fetch and send data in fetch_and_send_data: {e}")
@@ -185,11 +202,15 @@ def apy(message):
                 [f'`{token}: {apy:.3f}%`' for token, apy in last_fetched_data['kamino_data'].items()])
             meteora_message = "\n".join(
                 [f'`{token}: {apy:.3f}%`' for token, apy in last_fetched_data['meteora_data'].items()])
+            fluid_message_text = "\n".join(
+                [f'`{token}: {apr:.3f}%`' for token, apr in last_fetched_data['fluid_data'].items()])
+
             timestamp = last_fetched_data['timestamp'].strftime('%Y-%m-%d %H:%M:%S %Z%z')
             message_text = (f'Solend Data:\n{solend_message}\n'
-                            f'\nKamino Data:\n{kamino_message}\n'
-                            f'\nMeteora Data:\n{meteora_message}\n'
-                            f'Last updated: `{timestamp}`')
+                f'\nKamino Data:\n{kamino_message}\n'
+                f'\nMeteora Data:\n{meteora_message}\n'
+                f'\nFluid Data:\n{fluid_message_text}\n'
+                f'Last updated: `{timestamp}`')
             bot.reply_to(message, message_text)
     except Exception as e:
         bot.reply_to(message, f"Failed to fetch data in apy: {e}")
