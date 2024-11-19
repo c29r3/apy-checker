@@ -3,6 +3,7 @@ from solend import get_supply_apr
 from kamino import get_apy
 from meteora import meteora_vault_apr
 from fluid import get_fluid_supply_apr
+from aave import get_apy_aave
 import time
 import logging
 import json
@@ -38,6 +39,7 @@ last_fetched_data = {
     'kamino_data': None,
     'meteora_data': None,
     'fluid_data': None,
+    'aave_data': None,
     'timestamp': None
 }
 
@@ -72,6 +74,9 @@ def get_kamino_data_with_retries(retries=3, delay=5):
 
 def fetch_and_send_data():
     try:
+        # Get data from Aave
+        aave_data = get_apy_aave()
+
         # Get data from Solend
         solend_data = get_supply_apr()
         solend_data = {token: float(apr) for token, apr in solend_data.items()}
@@ -92,6 +97,7 @@ def fetch_and_send_data():
 
 
         # Cache the fetched data
+        last_fetched_data['aave_data'] = aave_data
         last_fetched_data['fluid_data'] = fluid_data
         last_fetched_data['solend_data'] = solend_data
         last_fetched_data['kamino_data'] = kamino_data
@@ -101,6 +107,13 @@ def fetch_and_send_data():
         # Check for conditions to send a message
         message = ""
         should_send = False
+
+        # Check if any Aave data is below the threshold
+        if aave_data:
+            for apy in aave_data.values():
+                if apy <= MIN_APY_THRESHOLD:
+                    should_send = True
+                    break
 
         # Check if any Solend data is below the threshold
         for apr in solend_data.values():
@@ -129,13 +142,18 @@ def fetch_and_send_data():
                 break
 
         # Log the conditions
-        logging.info(f"should_send: {should_send}, MIN_APY_THRESHOLD: {MIN_APY_THRESHOLD}, solend_data: {solend_data},"
-                     f"kamino_data: {kamino_data}, meteora_data: {meteora_data}, fluid_data: {fluid_data}")
+        logging.info(f"should_send: {should_send}, MIN_APY_THRESHOLD: {MIN_APY_THRESHOLD}, "
+                     f"aave_data: {aave_data}, "
+                     f"solend_data: {solend_data}, "
+                     f"kamino_data: {kamino_data}, "
+                     f"meteora_data: {meteora_data}, "
+                     f"fluid_data: {fluid_data}")
 
 
         # Send the message if conditions are met
         if should_send:
-            message = (f"Solend Data:\n{solend_message(solend_data)}\n\n"
+            message = (f"Aave data:\n{aave_data}\n\n"
+                    f"Solend Data:\n{solend_message(solend_data)}\n\n"
                     f"Kamino Data:\n{kamino_message}\n\n"
                     f"Meteora Data:\n{solend_message(meteora_data)}\n\n"
                     f"Fluid Data:\n{solend_message(fluid_data)}\n\n"
@@ -195,6 +213,8 @@ def apy(message):
             bot.reply_to(message, "No data available yet. Please wait for the first fetch.")
         else:
             # Use cached data
+            aave_message = "\n".join(
+                [f'`{token}: {apr:.3f}%`' for token, apr in last_fetched_data['aave_data'].items()])
             solend_message = "\n".join(
                 [f'`{token}: {apr:.3f}%`' for token, apr in last_fetched_data['solend_data'].items()])
             kamino_message = "\n".join(
@@ -205,7 +225,8 @@ def apy(message):
                 [f'`{token}: {apr:.3f}%`' for token, apr in last_fetched_data['fluid_data'].items()])
 
             timestamp = last_fetched_data['timestamp'].strftime('%Y-%m-%d %H:%M:%S %Z%z')
-            message_text = (f'Solend Data:\n{solend_message}\n'
+            message_text = (f'Aave Data:\n{aave_message}\n'
+                f'\nSolend Data:\n{solend_message}\n'
                 f'\nKamino Data:\n{kamino_message}\n'
                 f'\nMeteora Data:\n{meteora_message}\n'
                 f'\nFluid Data:\n{fluid_message_text}\n'
